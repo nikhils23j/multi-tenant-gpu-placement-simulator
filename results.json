@@ -1,0 +1,77 @@
+{
+  "scope": "discrete-event simulation; no physical GPU or Kubernetes cluster",
+  "environment": {
+    "python": "3.10.8",
+    "platform": "macOS-27.2-arm64-arm-64bit"
+  },
+  "workload": {
+    "jobs": 10000,
+    "nodes": 32,
+    "gpus_per_node": 8,
+    "arrival_rate_per_s": 3.2,
+    "seed": 27,
+    "interactive_fraction_target": 0.7,
+    "interactive_duration_s": [
+      1,
+      5
+    ],
+    "batch_duration_s": [
+      25,
+      80
+    ]
+  },
+  "fifo": {
+    "policy": "fifo",
+    "jobs_completed": 10000,
+    "interactive_p95_wait_s": 168.225,
+    "interactive_mean_wait_s": 89.413,
+    "batch_p95_wait_s": 169.358,
+    "tenant_p95_wait_s": {
+      "interactive-a": 168.053,
+      "interactive-b": 168.459,
+      "batch-a": 169.208,
+      "batch-b": 169.405
+    },
+    "peak_used_gpus": 256,
+    "overcommit_events": 0,
+    "makespan_s": 3333.338,
+    "gpu_utilization_fraction": 0.888
+  },
+  "fifo_backfill": {
+    "policy": "fifo_backfill",
+    "jobs_completed": 10000,
+    "interactive_p95_wait_s": 1.584,
+    "interactive_mean_wait_s": 0.327,
+    "batch_p95_wait_s": 69.84,
+    "tenant_p95_wait_s": {
+      "interactive-a": 1.586,
+      "interactive-b": 1.583,
+      "batch-a": 70.048,
+      "batch-b": 69.67
+    },
+    "peak_used_gpus": 256,
+    "overcommit_events": 0,
+    "makespan_s": 3172.225,
+    "gpu_utilization_fraction": 0.9331
+  },
+  "weighted_fair": {
+    "policy": "weighted_fair",
+    "jobs_completed": 10000,
+    "interactive_p95_wait_s": 0.167,
+    "interactive_mean_wait_s": 0.037,
+    "batch_p95_wait_s": 93.285,
+    "tenant_p95_wait_s": {
+      "interactive-a": 0.144,
+      "interactive-b": 0.175,
+      "batch-a": 51.931,
+      "batch-b": 100.126
+    },
+    "peak_used_gpus": 256,
+    "overcommit_events": 0,
+    "makespan_s": 3172.225,
+    "gpu_utilization_fraction": 0.9331
+  },
+  "interactive_p95_wait_improvement_pct": 99.9,
+  "interactive_p95_wait_improvement_vs_backfill_pct": 89.46,
+  "target_met": true
+}
