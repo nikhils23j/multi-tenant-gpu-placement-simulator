@@ -1,6 +1,6 @@
 """Full evaluation: every policy x many seeds x several loads. Writes results.json.
 
-    python3 run_eval.py                 # full run (~1-3 min on an 8-core M2)
+    python3 run_eval.py                 # full run (390 s recorded on a loaded 8-core M2)
     python3 run_eval.py --quick         # 3 seeds, smaller sweep, for poking around
 """
 from __future__ import annotations

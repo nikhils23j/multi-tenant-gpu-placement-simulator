@@ -65,7 +65,7 @@ These come from 10 seeds × 10,000 jobs, mean ± 95% CI, unless noted.
 
 - **Strict FIFO is unusable with gang jobs.**
   - Utilization stayed at 57–65% across loads 0.6–1.1.
-  - On average 52–54 whole GPUs sat idle while the oldest training job would have fit by count.
+  - In the 10,000-job runs, 52–54 whole GPUs sat idle on average while the oldest training job would have fit by count (43 at load 0.6 in the sweep).
   - Inference p99 wait was already 69,332 s at load 0.6 (sweep, 5,000 jobs).
 - **Greedy backfill vs EASY at load 1.0.**
   - The worst wait for a 16/32-GPU job dropped from 297 ± 45 h to 82 ± 17 h, better in 10/10 seeds.
