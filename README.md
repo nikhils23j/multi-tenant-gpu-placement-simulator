@@ -314,8 +314,7 @@ What the tests check:
 ├── test_simulator.py      14 unittest cases
 ├── scripts/
 │   └── make_figures.py    draws docs/img/*.png from results.json only
-├── docs/img/              README charts
-└── INTERVIEW_NOTES.md     design decisions, results and likely questions
+└── docs/img/              README charts
 ```
 
 ## What this isn't / limits
@@ -332,10 +331,3 @@ What the tests check:
   - There's no network or storage, and no multi-node placement cost beyond "whole free nodes".
 - **Heavy-tailed means noisy.** A few 32-GPU, multi-day jobs dominate some seeds, which is why several CIs
   are wide. Read the ± values and the paired comparisons in `results.json`, not just the means.
-
-## More
-
-The design decisions, the reasoning behind each one, and the questions I'd expect about this project are in
-[INTERVIEW_NOTES.md](INTERVIEW_NOTES.md).
-
-Built with AI pair-programming help; I've read and tested every part of it.
