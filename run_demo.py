@@ -1,53 +1,43 @@
-"""Run equal-workload FIFO and weighted-fair comparisons and write results."""
+"""Quick single-seed demo: one workload, every policy, one table. Good for poking at knobs.
+
+    python3 run_demo.py --load 1.0 --seed 3 --jobs 4000
+    python3 run_demo.py --policies easy_topo drf_topo_preempt --mtbf-days 0   # no node failures
+"""
 from __future__ import annotations
 
 import argparse
-import json
-import platform
-from pathlib import Path
+import time
 
-from simulator import generate_jobs, simulate
+from simulator import POLICIES, ClusterSpec, simulate
+from workload import generate_failures, generate_workload, offered_load
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--jobs", type=int, default=10_000)
-    parser.add_argument("--nodes", type=int, default=32)
-    parser.add_argument("--gpus-per-node", type=int, default=8)
-    parser.add_argument("--arrival-rate", type=float, default=3.2)
-    parser.add_argument("--seed", type=int, default=27)
-    parser.add_argument("--output", default="results.json")
-    args = parser.parse_args()
-    jobs = generate_jobs(args.jobs, args.seed, args.arrival_rate)
-    fifo = simulate(jobs, "fifo", args.nodes, args.gpus_per_node)
-    backfill = simulate(jobs, "fifo_backfill", args.nodes, args.gpus_per_node)
-    fair = simulate(jobs, "weighted_fair", args.nodes, args.gpus_per_node)
-    fifo_metrics = fifo.metrics(jobs, args.nodes, args.gpus_per_node)
-    backfill_metrics = backfill.metrics(jobs, args.nodes, args.gpus_per_node)
-    fair_metrics = fair.metrics(jobs, args.nodes, args.gpus_per_node)
-    baseline = fifo_metrics["interactive_p95_wait_s"]
-    improvement = 100 * (baseline - fair_metrics["interactive_p95_wait_s"]) / baseline if baseline else 0.0
-    backfill_baseline = backfill_metrics["interactive_p95_wait_s"]
-    backfill_improvement = (100 * (backfill_baseline - fair_metrics["interactive_p95_wait_s"]) / backfill_baseline
-                            if backfill_baseline else 0.0)
-    result = {
-        "scope": "discrete-event simulation; no physical GPU or Kubernetes cluster",
-        "environment": {"python": platform.python_version(), "platform": platform.platform()},
-        "workload": {
-            "jobs": args.jobs, "nodes": args.nodes, "gpus_per_node": args.gpus_per_node,
-            "arrival_rate_per_s": args.arrival_rate, "seed": args.seed,
-            "interactive_fraction_target": 0.70,
-            "interactive_duration_s": [1, 5], "batch_duration_s": [25, 80],
-        },
-        "fifo": fifo_metrics, "fifo_backfill": backfill_metrics, "weighted_fair": fair_metrics,
-        "interactive_p95_wait_improvement_pct": round(improvement, 2),
-        "interactive_p95_wait_improvement_vs_backfill_pct": round(backfill_improvement, 2),
-        "target_met": improvement >= 25 and fair.overcommit_events == 0,
-    }
-    assert fifo.completed == backfill.completed == fair.completed == args.jobs
-    assert fifo.overcommit_events == backfill.overcommit_events == fair.overcommit_events == 0
-    Path(args.output).write_text(json.dumps(result, indent=2) + "\n")
-    print(json.dumps(result, indent=2))
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--jobs", type=int, default=4000)
+    ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--load", type=float, default=0.9, help="offered GPU-time / cluster capacity")
+    ap.add_argument("--nodes", type=int, default=32)
+    ap.add_argument("--frac-80gb", type=float, default=0.5)
+    ap.add_argument("--mtbf-days", type=float, default=10.0, help="per-node mean time between failures; 0 = off")
+    ap.add_argument("--policies", nargs="+", default=list(POLICIES), choices=list(POLICIES))
+    a = ap.parse_args()
+
+    cluster = ClusterSpec(a.nodes, a.frac_80gb)
+    jobs = generate_workload(a.jobs, a.seed, a.load, cluster)
+    fails = generate_failures(a.seed, cluster, jobs[-1].arrival, mtbf_days=a.mtbf_days)
+    print(f"{len(jobs)} jobs over {jobs[-1].arrival / 86400:.1f} simulated days, offered load "
+          f"{offered_load(jobs, cluster):.2f}, {cluster.gpus} GPUs, {len(fails)} node failures\n")
+    print(f"{'policy':22s} {'int p99 s':>10s} {'int >60s%':>9s} {'batch p95 h':>11s} {'big max h':>9s} "
+          f"{'util%':>6s} {'strand':>6s} {'jain':>5s} {'preempt':>7s} {'xisland%':>8s} {'sim s':>6s}")
+    for p in a.policies:
+        t0 = time.perf_counter()
+        m = simulate(jobs, p, cluster, fails).metrics
+        assert m["jobs_completed"] == len(jobs) and m["overcommit_events"] == 0
+        print(f"{p:22s} {m['interactive_p99_wait_s']:10.0f} {100 * m['interactive_frac_wait_over_60s']:9.2f} "
+              f"{m['batch_p95_wait_s'] / 3600:11.1f} {m['big_job_max_wait_s'] / 3600:9.0f} "
+              f"{100 * m['gpu_utilization']:6.1f} {m['stranded_gpus_avg']:6.1f} {m['jain_fairness_slowdown']:5.2f} "
+              f"{m['preemptions']:7d} {100 * m['cross_island_frac_small_gangs']:8.1f} {time.perf_counter() - t0:6.1f}")
 
 
 if __name__ == "__main__":
